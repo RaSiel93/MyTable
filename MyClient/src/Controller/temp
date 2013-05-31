@@ -1,0 +1,255 @@
+public ControllerClient(ObjectInputStream in, ObjectOutputStream out) {
+		this.in = in;
+		this.out = out;
+
+		this.currentIdData = 0;
+		this.hullList = new ArrayList<HullTable>();
+		this.findArrayList = new ArrayList<List<Find>>();
+		this.queryFind = new ArrayList<String>();
+		InitializeLesteners();
+	}
+
+	private String generateQueryPage() {
+		int currentPage = mainFrame.getCurrentPage();
+		int maxRows = mainFrame.getMaxRows();
+		return " LIMIT " + (currentPage * maxRows) + ", " + maxRows;
+	}
+
+	public void setFrame(FrameMain mainFrame) {
+		this.mainFrame = mainFrame;
+	}
+
+	public ActionListener getListner(String string) {
+		return listeners.get(string);
+	}
+
+	public HullTable getHull() {
+		return hullList.get(currentIdData);
+	}
+
+	public List<Find> getFind() {
+		return findArrayList.get(currentIdData);
+	}
+
+	public List<List<String>> getData() throws MyException {
+		try {
+			this.queryFind.add(generateQueryPage());
+			out.writeObject(new QueryFind(this.queryFind));
+			this.queryFind.remove(this.queryFind.size() - 1);
+			return (List<List<String>>) in.readObject();
+		} catch (IOException | ClassNotFoundException e) {
+			throw new MyException(e);
+		}
+	}
+
+	public List getHeaderNames() {
+		return hullList.get(currentIdData).getHeaderNames();
+	}
+
+	public List getUnionCells() {
+		return hullList.get(currentIdData).getUnionCells();
+	}
+
+	public boolean loadFile() throws MyException {
+		// JFileChooser fileopen = new JFileChooser();
+		// fileopen.setCurrentDirectory(new File(".\\save"));
+		// if (fileopen.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+		// if (this.currentIdData >= 0)
+		// close(this.currentIdData);
+		// return true;
+		// }
+		// return false;
+		return true;
+	}
+
+	private void saveFile(boolean flag) throws MyException {
+		if (flag) {
+			JFileChooser fileopen = new JFileChooser();
+			fileopen.setCurrentDirectory(new File(".\\save"));
+			if (fileopen.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+				// dataBaseList.get(currentIdData).writeIntoXML(
+				// fileopen.getSelectedFile().getAbsolutePath());
+			}
+		} else {
+			// dataBaseList.get(currentIdData).writeIntoXML(new String(""));
+		}
+	}
+
+	private class AddData implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			mainFrame.dialogAdd();
+		}
+	}
+
+	private class DeleteData implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			List<String> listSelected = mainFrame.getSelectedRows();
+			if (listSelected.size() > 0) {
+				try {
+					// dataBaseList.get(currentIdData).delete(listSelected);
+					mainFrame.updateFrame();
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}
+			}
+			try {
+				mainFrame.dialogRemove(listSelected.size());
+				updateFrame();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			} catch (MyException e1) {
+				e1.printStackTrace();
+			}
+		}
+	}
+
+	private class LoadData implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			try {
+				if (loadFile() == true) {
+					Object x = new QueryLoad(
+							"c:\\Users\\RaSiel\\workspace\\Server-Client\\MyServer\\save\\");
+					out.writeObject(x);
+					ResultLoad result = (ResultLoad) in.readObject();
+					hullList.add(result.getHullTable());
+					findArrayList.add(result.getList());
+					mainFrame.creatTable(getHull(), getFind());
+					updateFrame();
+				}
+			} catch (MyException e1) {
+				e1.printStackTrace();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			} catch (ClassNotFoundException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
+	}
+
+	private class SaveFile implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			try {
+				saveFile(false);
+			} catch (MyException e1) {
+				e1.printStackTrace();
+			}
+		}
+	}
+
+	private class SaveFileAs implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			try {
+				saveFile(true);
+			} catch (MyException e1) {
+				e1.printStackTrace();
+			}
+		}
+	}
+
+	private class CloseFile implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			try {
+				close(currentIdData);
+				mainFrame.updateFrame();
+			} catch (Exception e1) {
+				e1.printStackTrace();
+			}
+		}
+	}
+
+	private class About implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			try {
+				mainFrame.dialogAbout();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		}
+	}
+
+	private class ExitFile implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			try {
+				closeAll();
+				System.exit(0);
+			} catch (Exception e1) {
+				e1.printStackTrace();
+			}
+		}
+	}
+
+	private void InitializeLesteners() {
+		listeners = new HashMap<String, ActionListener>();
+
+		listeners.put("ADD", new AddData());
+		listeners.put("DELETE", new DeleteData());
+		listeners.put("LOAD", new LoadData());
+		listeners.put("SAVE", new SaveFile());
+		listeners.put("SAVE_AS", new SaveFileAs());
+		listeners.put("ABOUT", new About());
+		listeners.put("CLOSE", new CloseFile());
+		listeners.put("EXIT", new ExitFile());
+	}
+
+	public void close(int number) throws MyException {
+		// if (number < dataBaseList.size()) {
+		mainFrame.removeTable(number);
+		hullList.remove(number);
+		///dataBaseList.get(number).clear();
+		// dataBaseList.remove(number);
+		// }
+	}
+
+	public void closeAll() throws Exception {
+		for (int number = 0; number >= 0; number--) {
+			close(1);
+		}
+	}
+
+	public void addInTable(List<List<String>> value) throws Exception {
+		// dataBaseList.get(currentIdData).insert(value);
+	}
+
+	public void updateFrame() throws MyException {
+		mainFrame.updateFrame();
+	}
+
+	public void resetQueryFind() {
+		this.queryFind.clear();
+	}
+
+	public void setQueryFind(List<String> findQuery) {
+		this.queryFind = findQuery;
+	}
+
+	public ResultLoad getLoadResult(QueryLoad query) {
+		return null;
+		// this.database =
+		// this.cloudscapeFactory.getCustomerDAO(query.getName(),
+		// 1);
+		// return new ResultLoad(database.getHull(), database.getFindArray());
+	}
+
+	public List<List<String>> getFindResult(QueryFind query) throws MyException {
+		return null;
+		// return this.database.find(this.queryFind);
+	}
+
+	public int getCountRows() throws MyException {
+		try {
+			out.writeObject(new QueryCountRows());
+			this.queryFind.remove(this.queryFind.size() - 1);
+			return (int) in.readObject();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		return 0;
+	}
+	
+	
+	
+	
